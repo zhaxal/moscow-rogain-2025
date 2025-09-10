@@ -2,6 +2,9 @@ import { SubmitHandler, useForm } from "react-hook-form";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import { GetServerSideProps } from "next";
+import { auth } from "@/lib/auth";
+import { enqueueSnackbar } from "notistack";
 
 interface SignUpForm {
   name: string;
@@ -9,6 +12,34 @@ interface SignUpForm {
   password: string;
   confirmPassword: string;
 }
+
+export const getServerSideProps = (async (context) => {
+  try {
+    const { req } = context;
+
+    const session = await auth.api.getSession({
+      headers: req.headers as unknown as Headers,
+    });
+
+    if (session) {
+      return {
+        redirect: {
+          destination: "/org",
+          permanent: false,
+        },
+      };
+    }
+
+    return {
+      props: {},
+    };
+  } catch (error) {
+    console.error("Error in getServerSideProps:", error);
+    return {
+      notFound: true,
+    };
+  }
+}) satisfies GetServerSideProps;
 
 function SignUpPage() {
   const {
@@ -41,8 +72,7 @@ function SignUpPage() {
         },
         onError: (ctx) => {
           setIsLoading(false);
-          console.log(ctx.error);
-          alert(ctx.error.message);
+          enqueueSnackbar(ctx.error.message, { variant: "error" });
         },
       }
     );

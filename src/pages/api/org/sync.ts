@@ -78,7 +78,7 @@ export default async function handler(
     }
 
     if (!login || !password) {
-      return res.status(500).json({ error: "Server configuration error" });
+      return res.status(500).json({ error: "App credentials are not set" });
     }
 
     // Parse the uploaded file with proper temp directory
@@ -87,7 +87,7 @@ export default async function handler(
       keepExtensions: true,
     });
 
-    const [fields, files] = await form.parse(req);
+    const [, files] = await form.parse(req);
     const uploadedFile = Array.isArray(files.csv) ? files.csv[0] : files.csv;
 
     if (!uploadedFile) {
@@ -126,6 +126,8 @@ export default async function handler(
 
     // Clean up uploaded file
     fs.unlinkSync(uploadedFile.filepath);
+
+    pb.authStore.clear();
 
     if (!result) {
       return res.status(500).json({ error: "Failed to update game data" });

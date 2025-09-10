@@ -1,7 +1,41 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/router";
+import Head from "next/head";
 import { authClient } from "@/lib/auth-client";
+import { gothampro, mossport } from "@/utils/fonts";
+import Button from "@/components/Button";
+import { GetServerSideProps } from "next";
+import { auth } from "@/lib/auth";
+import { useSnackbar } from "notistack";
+
+export const getServerSideProps = (async (context) => {
+  try {
+    const { req } = context;
+
+    const session = await auth.api.getSession({
+      headers: req.headers as unknown as Headers,
+    });
+
+    if (session) {
+      return {
+        redirect: {
+          destination: "/",
+          permanent: false,
+        },
+      };
+    }
+
+    return {
+      props: {},
+    };
+  } catch (error) {
+    console.error("Error in getServerSideProps:", error);
+    return {
+      notFound: true,
+    };
+  }
+}) satisfies GetServerSideProps;
 
 interface SignUpForm {
   fullName: string;
@@ -17,6 +51,7 @@ function SignInPage() {
     watch,
   } = useForm<SignUpForm>();
   const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
@@ -27,22 +62,21 @@ function SignInPage() {
   const sendCode = async () => {
     if (!phoneValue) return;
     try {
-      // TODO: replace with real API call
       authClient.phoneNumber.sendOtp(
         { phoneNumber: phoneValue },
-
         {
           onRequest: () => {
             setIsSendingCode(true);
           },
           onSuccess: () => {
-            alert("Код успешно отправлен");
+            enqueueSnackbar("Код успешно отправлен", { variant: "success" });
             setCodeSent(true);
           },
         }
       );
     } catch (e) {
-      alert("Не удалось отправить код");
+      console.error(e);
+      enqueueSnackbar("Не удалось отправить код", { variant: "error" });
     } finally {
       setIsSendingCode(false);
     }
@@ -50,12 +84,11 @@ function SignInPage() {
 
   const onSubmit = async (data: SignUpForm) => {
     if (!codeSent) {
-      alert("Сначала получите код");
+      enqueueSnackbar("Сначала получите код", { variant: "warning" });
       return;
     }
     try {
       setIsRegistering(true);
-      // TODO: verify code + register (API call)
       authClient.phoneNumber.verify(
         {
           phoneNumber: data.phone,
@@ -66,118 +99,197 @@ function SignInPage() {
             authClient.updateUser({
               name: data.fullName,
             });
-            alert("Регистрация успешна");
+            enqueueSnackbar("Регистрация успешна", { variant: "success" });
             router.push("/");
           },
         }
       );
     } catch (e) {
-      alert("Ошибка регистрации");
+      console.error(e);
+      enqueueSnackbar("Ошибка регистрации", { variant: "error" });
     } finally {
       setIsRegistering(false);
     }
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-      <section className="bg-white p-4 sm:p-8 rounded shadow-md w-full max-w-[28rem]">
-        <h1 className="text-xl sm:text-2xl font-bold mb-4">Регистрация</h1>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              ФИО
-            </label>
-            <input
-              {...register("fullName", { required: true, minLength: 5 })}
-              type="text"
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              placeholder="Иванов Иван Иванович"
-            />
-            {errors.fullName && (
-              <span className="text-red-500 text-sm">
-                Укажите полное ФИО (минимум 5 символов)
-              </span>
-            )}
-          </div>
-
-          <div className="mb-2">
-            <p className="text-xs text-gray-600">
-              Пожалуйста укажите номер телефона, который будет использоваться
-              для участия в мероприятии
-            </p>
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Телефон
-            </label>
-            <input
-              {...register("phone", {
-                required: true,
-                pattern: /^\+?\d{10,15}$/,
-              })}
-              type="tel"
-              disabled={codeSent}
-              className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 disabled:bg-gray-100"
-              placeholder="+7XXXXXXXXXX"
-            />
-            {errors.phone && (
-              <span className="text-red-500 text-sm">
-                Укажите корректный номер (10–15 цифр)
-              </span>
-            )}
-          </div>
-
-          <div className="mb-4 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={sendCode}
-              disabled={
-                isSendingCode || !phoneValue || !!errors.phone || codeSent
-              }
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300 text-sm"
+    <>
+      <Head>
+        <title>Регистрация</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <main
+        className={`min-h-screen flex items-start justify-center p-3 sm:p-6 ${gothampro.className}`}
+        style={{ backgroundColor: "#FFFFFF" }}
+      >
+        <div
+          className="w-full max-w-xl rounded-xl p-4 sm:p-8 border-2 shadow-lg mt-4 sm:mt-0"
+          style={{
+            backgroundColor: "#FFFFFF",
+            borderColor: "#6DAD3A",
+          }}
+        >
+          <header className="mb-6 sm:mb-8 text-center">
+            <h1
+              className={`text-2xl sm:text-4xl font-bold tracking-wide mb-4 ${mossport.className}`}
+              style={{ color: "#6DAD3A" }}
             >
-              {isSendingCode
-                ? "Отправка..."
-                : codeSent
-                ? "Отправлен"
-                : "Получить код"}
-            </button>
-          </div>
+              РЕГИСТРАЦИЯ
+            </h1>
+            <div
+              className="w-full h-px"
+              style={{ backgroundColor: "#6DAD3A" }}
+            ></div>
+          </header>
 
-          {codeSent && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Код подтверждения
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-4 sm:space-y-6"
+          >
+            <div className="space-y-2 sm:space-y-3">
+              <label
+                className={`block text-sm font-semibold ${gothampro.className}`}
+                style={{ color: "#6DAD3A" }}
+              >
+                ФИО
               </label>
               <input
-                {...register("code", {
-                  required: true,
-                  minLength: 4,
-                  maxLength: 8,
-                })}
+                {...register("fullName", { required: true, minLength: 5 })}
                 type="text"
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                placeholder="Введите код"
+                className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base rounded-lg border-2 transition focus:outline-none ${
+                  gothampro.className
+                } ${
+                  errors.fullName
+                    ? "border-red-500 bg-red-50"
+                    : "border-gray-300 focus:border-orange-500 bg-white"
+                }`}
+                style={{ color: "#2D2D2D" }}
+                placeholder="Иванов Иван Иванович"
               />
-              {errors.code && (
-                <span className="text-red-500 text-sm">
-                  Укажите код (4–8 символов)
+              {errors.fullName && (
+                <span className="text-red-500 text-xs sm:text-sm font-medium">
+                  Укажите полное ФИО (минимум 5 символов)
                 </span>
               )}
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting || isRegistering || !codeSent}
-            className="mt-2 w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:bg-green-300 transition"
-          >
-            {isRegistering ? "Регистрация..." : "Зарегистрироваться"}
-          </button>
-        </form>
-      </section>
-    </main>
+            <div className="space-y-2">
+              <p
+                className={`text-xs leading-relaxed ${gothampro.className}`}
+                style={{ color: "#6DAD3A" }}
+              >
+                Пожалуйста укажите номер телефона, который будет использоваться
+                для участия в мероприятии
+              </p>
+            </div>
+
+            <div className="space-y-2 sm:space-y-3">
+              <label
+                className={`block text-sm font-semibold ${gothampro.className}`}
+                style={{ color: "#6DAD3A" }}
+              >
+                Телефон
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  {...register("phone", {
+                    required: true,
+                    pattern: /^\+?\d{10,15}$/,
+                  })}
+                  type="tel"
+                  disabled={codeSent}
+                  className={`flex-1 px-3 sm:px-4 py-3 text-sm sm:text-base rounded-lg border-2 transition focus:outline-none ${
+                    gothampro.className
+                  } ${
+                    errors.phone
+                      ? "border-red-500 bg-red-50"
+                      : codeSent
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-300 focus:border-orange-500 bg-white"
+                  } disabled:opacity-60`}
+                  style={{ color: "#2D2D2D" }}
+                  placeholder="+7XXXXXXXXXX"
+                />
+                <Button
+                  type="button"
+                  onClick={sendCode}
+                  variant="orange"
+                  disabled={
+                    isSendingCode || !phoneValue || !!errors.phone || codeSent
+                  }
+                >
+                  {isSendingCode
+                    ? "Отправка..."
+                    : codeSent
+                    ? "Отправлен"
+                    : "Получить код"}
+                </Button>
+              </div>
+              {errors.phone && (
+                <span className="text-red-500 text-xs sm:text-sm font-medium">
+                  Укажите корректный номер (10–15 цифр)
+                </span>
+              )}
+            </div>
+
+            {codeSent && (
+              <div className="space-y-2 sm:space-y-3">
+                <label
+                  className={`block text-sm font-semibold ${gothampro.className}`}
+                  style={{ color: "#6DAD3A" }}
+                >
+                  Код подтверждения
+                </label>
+                <input
+                  {...register("code", {
+                    required: true,
+                    minLength: 4,
+                    maxLength: 8,
+                  })}
+                  type="text"
+                  className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base rounded-lg border-2 transition focus:outline-none ${
+                    gothampro.className
+                  } ${
+                    errors.code
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-300 focus:border-orange-500 bg-white"
+                  }`}
+                  style={{ color: "#2D2D2D" }}
+                  placeholder="Введите код"
+                />
+                {errors.code && (
+                  <span className="text-red-500 text-xs sm:text-sm font-medium">
+                    Укажите код (4–8 символов)
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div
+                className={`text-xs sm:text-sm text-center sm:text-left ${gothampro.className}`}
+                style={{ color: "#6DAD3A" }}
+              >
+                {!codeSent
+                  ? "Получите код для продолжения"
+                  : isRegistering
+                  ? "Выполняется регистрация..."
+                  : "Готов к регистрации"}
+              </div>
+              <div className="w-full sm:w-auto">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isRegistering || !codeSent}
+                  className="w-full sm:w-auto"
+                >
+                  {isRegistering ? "РЕГИСТРАЦИЯ..." : "ЗАРЕГИСТРИРОВАТЬСЯ"}
+                </Button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </main>
+    </>
   );
 }
 

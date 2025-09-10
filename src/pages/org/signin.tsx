@@ -1,5 +1,8 @@
+import { auth } from "@/lib/auth";
 import { authClient } from "@/lib/auth-client";
+import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
+import { useSnackbar } from "notistack";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -8,12 +11,41 @@ interface SignInForm {
   password: string;
 }
 
+export const getServerSideProps = (async (context) => {
+  try {
+    const { req } = context;
+
+    const session = await auth.api.getSession({
+      headers: req.headers as unknown as Headers,
+    });
+
+    if (session) {
+      return {
+        redirect: {
+          destination: "/org",
+          permanent: false,
+        },
+      };
+    }
+
+    return {
+      props: {},
+    };
+  } catch (error) {
+    console.error("Error in getServerSideProps:", error);
+    return {
+      notFound: true,
+    };
+  }
+}) satisfies GetServerSideProps;
+
 function SignInPage() {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<SignInForm>();
+  const { enqueueSnackbar } = useSnackbar();
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -36,7 +68,8 @@ function SignInPage() {
         },
         onError: (ctx) => {
           setIsLoading(false);
-          alert(ctx.error.message);
+
+          enqueueSnackbar(ctx.error.message, { variant: "error" });
         },
       }
     );

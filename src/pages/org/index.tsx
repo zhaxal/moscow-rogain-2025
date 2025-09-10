@@ -64,27 +64,8 @@ function OrgPage({ user }: AdminPanelProps) {
       href: "/org/sync",
       color: "bg-blue-50 border-blue-200 hover:bg-blue-100",
     },
-    {
-      title: "Управление командами",
-      description: "Просмотр и управление зарегистрированными командами",
-      icon: "👥",
-      href: "/org/teams",
-      color: "bg-green-50 border-green-200 hover:bg-green-100",
-    },
-    {
-      title: "Статистика игры",
-      description: "Просмотр результатов и аналитика",
-      icon: "📊",
-      href: "/org/stats",
-      color: "bg-purple-50 border-purple-200 hover:bg-purple-100",
-    },
-    {
-      title: "Настройки игры",
-      description: "Конфигурация параметров рогейна",
-      icon: "⚙️",
-      href: "/org/settings",
-      color: "bg-gray-50 border-gray-200 hover:bg-gray-100",
-    },
+
+
     {
       title: "Экспорт данных",
       description: "Скачать результаты в различных форматах",
@@ -92,13 +73,7 @@ function OrgPage({ user }: AdminPanelProps) {
       href: "/org/export",
       color: "bg-yellow-50 border-yellow-200 hover:bg-yellow-100",
     },
-    {
-      title: "Логи системы",
-      description: "Просмотр системных логов и активности",
-      icon: "📝",
-      href: "/org/logs",
-      color: "bg-red-50 border-red-200 hover:bg-red-100",
-    },
+
   ];
 
   const stats = [
