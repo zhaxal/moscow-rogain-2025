@@ -32,7 +32,7 @@ function SignInPage() {
           setIsLoading(true);
         },
         onSuccess: (ctx) => {
-          router.push("/");
+          router.push("/org");
         },
         onError: (ctx) => {
           setIsLoading(false);

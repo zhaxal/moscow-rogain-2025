@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { createAuthMiddleware, APIError } from "better-auth/api";
 import { admin, phoneNumber } from "better-auth/plugins";
-import { openAPI, anonymous } from "better-auth/plugins";
+import { openAPI } from "better-auth/plugins";
 
 import { MongoClient } from "mongodb";
 
@@ -28,12 +28,20 @@ export const auth = betterAuth({
     user: {
       create: {
         before: async (user) => {
-          return {
-            data: {
-              ...user,
-              role: adminEmails.includes(user.email) ? "admin" : "user",
-            },
-          };
+          if (!!user.email && adminEmails.includes(user.email)) {
+            return {
+              data: {
+                ...user,
+                role: adminEmails.includes(user.email) ? "admin" : "user",
+              },
+            };
+          } else {
+            return {
+              data: {
+                ...user,
+              },
+            };
+          }
         },
       },
     },
@@ -61,14 +69,28 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: false,
   },
-  plugins: [admin(), openAPI()],
+  plugins: [
+    admin(),
+    openAPI(),
+    phoneNumber({
+      sendOTP: ({ phoneNumber, code }, request) => {
+        // Implement sending OTP code via SMS
+        console.log(`Sending OTP ${code} to phone number ${phoneNumber}`);
+      },
+      signUpOnVerification: {
+        getTempEmail: (phoneNumber) => {
+          return `${phoneNumber}@rogain-moskva.ru`;
+        },
+      },
+    }),
+  ],
   rateLimit: {
     enabled: false,
   },
 
-  user: {
-    deleteUser: {
-      enabled: true,
-    },
-  },
+  // user: {
+  //   deleteUser: {
+  //     enabled: true,
+  //   },
+  // },
 });
