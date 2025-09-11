@@ -1,14 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { auth } from "@/lib/auth";
-import PocketBase from "pocketbase";
+
 import formidable from "formidable";
 import fs from "fs";
 import csv from "csv-parser";
 import os from "os";
-
-const pb = new PocketBase("https://pb.rogain.moscow");
-const login = process.env.PB_LOGIN;
-const password = process.env.PB_PASSWORD;
+import { db } from "@/database";
 
 // Disable body parser to handle file uploads
 export const config = {
@@ -18,6 +15,7 @@ export const config = {
 };
 
 interface Question {
+  org_id: string;
   number: string;
   question: string;
   correct_answer: string;
@@ -34,6 +32,7 @@ function parseCSV(filePath: string): Promise<Question[]> {
       .pipe(csv())
       .on("data", (row) => {
         questions.push({
+          org_id: row["org_id"], // Default value if org_id is missing
           number: row["№ Вопроса"],
           question: row["Вопрос"],
           correct_answer: row["Верный ответ"],
@@ -77,10 +76,6 @@ export default async function handler(
       return res.status(403).json({ error: "Forbidden" });
     }
 
-    if (!login || !password) {
-      return res.status(500).json({ error: "App credentials are not set" });
-    }
-
     // Parse the uploaded file with proper temp directory
     const form = formidable({
       uploadDir: os.tmpdir(), // Use OS-specific temp directory
@@ -97,41 +92,32 @@ export default async function handler(
     // Parse CSV data
     const questions = await parseCSV(uploadedFile.filepath);
 
-    // Connect to PocketBase
-    await pb.collection("_superusers").authWithPassword(login, password);
+    // Database operations using Kysely
+    await db.transaction().execute(async (trx) => {
+      // Delete existing questions
+      await trx.deleteFrom("question").execute();
 
-    // Clear existing questions and create new ones
-    const existingQuestions = await pb.collection("questions").getFullList();
-
-    // Delete existing questions
-    for (const question of existingQuestions) {
-      await pb.collection("questions").delete(question.id);
-    }
-
-    // Create new questions from CSV
-    const batch = pb.createBatch();
-
-    for (const question of questions) {
-      batch.collection("questions").create({
-        number: parseInt(question.number),
-        question: question.question,
-        correct_answer: question.correct_answer,
-        incorrect_answer_1: question.incorrect_answer_1,
-        incorrect_answer_2: question.incorrect_answer_2,
-        incorrect_answer_3: question.incorrect_answer_3,
-      });
-    }
-
-    const result = await batch.send();
+      // Insert new questions from CSV
+      if (questions.length > 0) {
+        await trx
+          .insertInto("question")
+          .values(
+            questions.map((question) => ({
+              org_id: question.org_id,
+              number: parseInt(question.number),
+              question_text: question.question,
+              correct_answer: question.correct_answer,
+              incorrect_answer_1: question.incorrect_answer_1,
+              incorrect_answer_2: question.incorrect_answer_2,
+              incorrect_answer_3: question.incorrect_answer_3,
+            }))
+          )
+          .execute();
+      }
+    });
 
     // Clean up uploaded file
     fs.unlinkSync(uploadedFile.filepath);
-
-    pb.authStore.clear();
-
-    if (!result) {
-      return res.status(500).json({ error: "Failed to update game data" });
-    }
 
     return res.status(200).json({
       message: "Вопросы успешно синхронизированы",

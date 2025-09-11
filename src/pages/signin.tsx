@@ -2,32 +2,38 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/router";
 import Head from "next/head";
+import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { gothampro, mossport } from "@/utils/fonts";
 import Button from "@/components/Button";
 import { GetServerSideProps } from "next";
 import { auth } from "@/lib/auth";
 import { useSnackbar } from "notistack";
+import Footer from "@/components/Footer";
 
 export const getServerSideProps = (async (context) => {
   try {
-    const { req } = context;
+    const { req, query } = context;
+    const redirect = query.redirect as string;
 
     const session = await auth.api.getSession({
       headers: req.headers as unknown as Headers,
     });
 
     if (session) {
+      // If user is already authenticated, redirect to the intended page or home
       return {
         redirect: {
-          destination: "/",
+          destination: redirect && redirect.startsWith("/") ? redirect : "/",
           permanent: false,
         },
       };
     }
 
     return {
-      props: {},
+      props: {
+        redirect: redirect || null,
+      },
     };
   } catch (error) {
     console.error("Error in getServerSideProps:", error);
@@ -42,7 +48,11 @@ interface SignUpForm {
   code: string;
 }
 
-function SignInPage() {
+interface SignInPageProps {
+  redirect?: string | null;
+}
+
+function SignInPage({ redirect }: SignInPageProps) {
   const {
     register,
     handleSubmit,
@@ -98,11 +108,11 @@ function SignInPage() {
             setIsRegistering(true);
           },
           onSuccess: () => {
-            // authClient.updateUser({
-            //   name: data.fullName,
-            // });
             enqueueSnackbar("Регистрация успешна", { variant: "success" });
-            router.push("/");
+            // Redirect to the intended page or home
+            const destination =
+              redirect && redirect.startsWith("/") ? redirect : "/";
+            router.push(destination);
           },
           onResponse: () => {
             setIsRegistering(false);
@@ -122,17 +132,29 @@ function SignInPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <main
-        className={`min-h-screen flex items-start justify-center p-3 sm:p-6 ${gothampro.className}`}
+        className={`min-h-screen flex flex-col items-start justify-center p-3 sm:p-6 ${gothampro.className}`}
         style={{ backgroundColor: "#FFFFFF" }}
       >
         <div
-          className="w-full max-w-xl rounded-xl p-4 sm:p-8 border-2 shadow-lg mt-4 sm:mt-0"
+          className="w-full max-w-xl rounded-xl p-4 sm:p-8 border-2 shadow-lg mt-4 sm:mt-0 mx-auto"
           style={{
             backgroundColor: "#FFFFFF",
             borderColor: "#6DAD3A",
           }}
         >
           <header className="mb-6 sm:mb-8 text-center">
+            {/* Main Logo */}
+            <div className="mb-6">
+              <Image
+                src="/logos/rogaine_logo.svg"
+                alt="Rogaine Logo"
+                width={200}
+                height={100}
+                className="mx-auto"
+                priority
+              />
+            </div>
+
             <h1
               className={`text-2xl sm:text-4xl font-bold tracking-wide mb-4 ${mossport.className}`}
               style={{ color: "#6DAD3A" }}
@@ -149,33 +171,6 @@ function SignInPage() {
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4 sm:space-y-6"
           >
-            {/* <div className="space-y-2 sm:space-y-3">
-              <label
-                className={`block text-sm font-semibold ${gothampro.className}`}
-                style={{ color: "#6DAD3A" }}
-              >
-                ФИО
-              </label>
-              <input
-                {...register("fullName", { required: true, minLength: 5 })}
-                type="text"
-                className={`w-full px-3 sm:px-4 py-3 text-sm sm:text-base rounded-lg border-2 transition focus:outline-none ${
-                  gothampro.className
-                } ${
-                  errors.fullName
-                    ? "border-red-500 bg-red-50"
-                    : "border-gray-300 focus:border-orange-500 bg-white"
-                }`}
-                style={{ color: "#2D2D2D" }}
-                placeholder="Иванов Иван Иванович"
-              />
-              {errors.fullName && (
-                <span className="text-red-500 text-xs sm:text-sm font-medium">
-                  Укажите полное ФИО (минимум 5 символов)
-                </span>
-              )}
-            </div> */}
-
             <div className="space-y-2">
               <p
                 className={`text-xs leading-relaxed ${gothampro.className}`}
@@ -291,6 +286,8 @@ function SignInPage() {
             </div>
           </form>
         </div>
+
+        <Footer />
       </main>
     </>
   );

@@ -8,6 +8,7 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import Head from "next/head";
 import { gothampro, mossport } from "@/utils/fonts";
+import Footer from "@/components/Footer";
 
 function QrPage() {
   const device = useDevices();
@@ -51,7 +52,7 @@ function QrPage() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <main
-        className={`min-h-screen flex items-start justify-center p-3 sm:p-6 ${gothampro.className}`}
+        className={`min-h-screen flex flex-col items-center justify-center p-3 sm:p-6 ${gothampro.className}`}
         style={{ backgroundColor: "#FFFFFF" }}
       >
         <div
@@ -193,6 +194,8 @@ function QrPage() {
             </Button>
           </div>
         </div>
+
+        <Footer />
       </main>
     </>
   );

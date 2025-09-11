@@ -1,12 +1,41 @@
 import Head from "next/head";
+import Image from "next/image";
 import { gothampro, mossport } from "@/utils/fonts";
 import Button from "@/components/Button";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/router";
+import Footer from "@/components/Footer";
+import { useEffect } from "react";
+import { useSnackbar } from "notistack";
+import { GetServerSideProps } from "next";
 
-export default function Home() {
+interface HomeProps {
+  snackbar?: string | null;
+}
+
+export const getServerSideProps = (async (context) => {
+  const { query } = context;
+  const snackbar = query.snackbar as string | undefined;
+
+  return {
+    props: {
+      snackbar: snackbar || null,
+    },
+  };
+}) satisfies GetServerSideProps<HomeProps>;
+
+export default function Home({ snackbar }: HomeProps) {
   const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
+  const { enqueueSnackbar } = useSnackbar();
+
+  useEffect(() => {
+    if (snackbar === "answered") {
+      enqueueSnackbar("Вы уже ответили на этот вопрос.", {
+        variant: "info",
+      });
+    }
+  }, [snackbar, enqueueSnackbar]);
 
   return (
     <>
@@ -15,7 +44,7 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <main
-        className={`min-h-screen flex items-center justify-center p-3 sm:p-6 ${gothampro.className}`}
+        className={`min-h-screen flex flex-col items-center justify-center p-3 sm:p-6 ${gothampro.className}`}
         style={{ backgroundColor: "#FFFFFF" }}
       >
         <div
@@ -26,6 +55,18 @@ export default function Home() {
           }}
         >
           <header className="mb-6 sm:mb-8">
+            {/* Main Logo */}
+            <div className="mb-6">
+              <Image
+                src="/logos/rogaine_logo.svg"
+                alt="Rogaine Logo"
+                width={200}
+                height={100}
+                className="mx-auto"
+                priority
+              />
+            </div>
+
             <h1
               className={`text-3xl sm:text-4xl font-bold tracking-wide mb-4 ${mossport.className}`}
               style={{ color: "#6DAD3A" }}
@@ -56,7 +97,15 @@ export default function Home() {
               ПАНЕЛЬ ОРГАНИЗАТОРА
             </Button>
           )}
+
+          {session && session.user.role === "user" && (
+            <Button onClick={() => router.push("/qr")} className="w-full">
+              СКАНИРОВАТЬ QR-КОД
+            </Button>
+          )}
         </div>
+
+        <Footer />
       </main>
     </>
   );

@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
 import { auth } from "@/lib/auth";
+import { authClient } from "@/lib/auth-client";
 
 export const getServerSideProps = (async (context) => {
   try {
@@ -65,15 +66,21 @@ function OrgPage({ user }: AdminPanelProps) {
       color: "bg-blue-50 border-blue-200 hover:bg-blue-100",
     },
 
-
     {
-      title: "Экспорт данных",
-      description: "Скачать результаты в различных форматах",
-      icon: "📥",
-      href: "/org/export",
-      color: "bg-yellow-50 border-yellow-200 hover:bg-yellow-100",
+      title: "Список участников",
+      description: "Просмотреть и управлять участниками игры",
+      icon: "👥",
+      href: "/org/users",
+      color: "bg-green-50 border-green-200 hover:bg-green-100",
     },
 
+    // {
+    //   title: "Экспорт данных",
+    //   description: "Скачать результаты в различных форматах",
+    //   icon: "📥",
+    //   href: "/org/export",
+    //   color: "bg-yellow-50 border-yellow-200 hover:bg-yellow-100",
+    // },
   ];
 
   const stats = [
@@ -107,7 +114,9 @@ function OrgPage({ user }: AdminPanelProps) {
                 <p className="text-xs text-gray-500 capitalize">{user.role}</p>
               </div>
               <button
-                onClick={() => router.push("/api/auth/signout")}
+                onClick={async () => {
+                  await authClient.signOut();
+                }}
                 className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-medium text-sm"
               >
                 Выйти
