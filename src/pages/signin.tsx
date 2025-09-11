@@ -38,7 +38,6 @@ export const getServerSideProps = (async (context) => {
 }) satisfies GetServerSideProps;
 
 interface SignUpForm {
-  fullName: string;
   phone: string;
   code: string;
 }
@@ -72,13 +71,14 @@ function SignInPage() {
             enqueueSnackbar("Код успешно отправлен", { variant: "success" });
             setCodeSent(true);
           },
+          onResponse: () => {
+            setIsSendingCode(false);
+          },
         }
       );
     } catch (e) {
       console.error(e);
       enqueueSnackbar("Не удалось отправить код", { variant: "error" });
-    } finally {
-      setIsSendingCode(false);
     }
   };
 
@@ -88,27 +88,30 @@ function SignInPage() {
       return;
     }
     try {
-      setIsRegistering(true);
       authClient.phoneNumber.verify(
         {
           phoneNumber: data.phone,
           code: data.code,
         },
         {
+          onRequest: () => {
+            setIsRegistering(true);
+          },
           onSuccess: () => {
-            authClient.updateUser({
-              name: data.fullName,
-            });
+            // authClient.updateUser({
+            //   name: data.fullName,
+            // });
             enqueueSnackbar("Регистрация успешна", { variant: "success" });
             router.push("/");
+          },
+          onResponse: () => {
+            setIsRegistering(false);
           },
         }
       );
     } catch (e) {
       console.error(e);
       enqueueSnackbar("Ошибка регистрации", { variant: "error" });
-    } finally {
-      setIsRegistering(false);
     }
   };
 
@@ -146,7 +149,7 @@ function SignInPage() {
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-4 sm:space-y-6"
           >
-            <div className="space-y-2 sm:space-y-3">
+            {/* <div className="space-y-2 sm:space-y-3">
               <label
                 className={`block text-sm font-semibold ${gothampro.className}`}
                 style={{ color: "#6DAD3A" }}
@@ -171,7 +174,7 @@ function SignInPage() {
                   Укажите полное ФИО (минимум 5 символов)
                 </span>
               )}
-            </div>
+            </div> */}
 
             <div className="space-y-2">
               <p

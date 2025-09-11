@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { createAuthMiddleware, APIError } from "better-auth/api";
@@ -5,6 +6,7 @@ import { admin, phoneNumber } from "better-auth/plugins";
 import { openAPI } from "better-auth/plugins";
 
 import { MongoClient } from "mongodb";
+import PocketBase from "pocketbase";
 
 const uri = process.env.MONGODB_URI;
 if (!uri) {
@@ -42,6 +44,50 @@ export const auth = betterAuth({
               },
             };
           }
+        },
+
+        after: async (user) => {
+          const pb = new PocketBase("https://pb.rogain.moscow");
+          const login = process.env.PB_LOGIN;
+          const password = process.env.PB_PASSWORD;
+
+          if (!login || !password) {
+            throw new Error("App credentials are not set");
+          }
+
+          await pb.collection("_superusers").authWithPassword(login, password);
+
+          const data = {
+            id: user.id,
+            name: user.name || "Игрок",
+            phone_number: user.phoneNumber || "+70000000000",
+          };
+
+          await pb.collection("mongo_users").create(data);
+
+          pb.authStore.clear();
+        },
+      },
+      update: {
+        after: async (user) => {
+          const pb = new PocketBase("https://pb.rogain.moscow");
+          const login = process.env.PB_LOGIN;
+          const password = process.env.PB_PASSWORD;
+          if (!login || !password) {
+            throw new Error("App credentials are not set");
+          }
+          await pb.collection("_superusers").authWithPassword(login, password);
+
+          const record = await pb
+            .collection("mongo_users")
+            .getFirstListItem(`id="${user.id}"`);
+          if (record) {
+            const data: any = {};
+            if (user.name) data.name = user.name;
+            if (user.phoneNumber) data.phone_number = user.phoneNumber;
+            await pb.collection("mongo_users").update(record.id, data);
+          }
+          pb.authStore.clear();
         },
       },
     },

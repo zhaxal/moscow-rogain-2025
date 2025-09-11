@@ -5,7 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/router";
 
 export default function Home() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const router = useRouter();
 
   return (
@@ -45,13 +45,13 @@ export default function Home() {
             Добро пожаловать на мероприятие!
           </div>
 
-          {!session && (
+          {!isPending && !session && (
             <Button onClick={() => router.push("/signin")} className="w-full">
               ВОЙТИ В СИСТЕМУ
             </Button>
           )}
 
-          {session?.user.role === "admin" && (
+          {session && session.user.role === "admin" && (
             <Button onClick={() => router.push("/org")} className="w-full">
               ПАНЕЛЬ ОРГАНИЗАТОРА
             </Button>
