@@ -126,23 +126,6 @@ export const auth = betterAuth({
           console.log(`Sending OTP ${code} to phone number ${phoneNumber}`);
         }
 
-        await fetch("https://direct.i-dgtl.ru/api/v1/message", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.DIRECT_API_KEY}`,
-          },
-          body: JSON.stringify({
-            channelType: "TELEGRAM",
-            senderName: "message_test_im_bot",
-            destination: phoneNumber,
-            content: {
-              contentType: "text",
-              text: `Ваш код подтверждения: ${code}`,
-            },
-          }),
-        });
-
         // await fetch("https://direct.i-dgtl.ru/api/v1/message", {
         //   method: "POST",
         //   headers: {
@@ -150,12 +133,29 @@ export const auth = betterAuth({
         //     Authorization: `Bearer ${process.env.DIRECT_API_KEY}`,
         //   },
         //   body: JSON.stringify({
-        //     channelType: "SMS",
-        //     senderName: "sms_promo",
+        //     channelType: "TELEGRAM",
+        //     senderName: "message_test_im_bot",
         //     destination: phoneNumber,
-        //     content: `Ваш код подтверждения: ${code} (${process.env.DIRECT_COMPANY_NAME})`,
+        //     content: {
+        //       contentType: "text",
+        //       text: `Ваш код подтверждения: ${code}`,
+        //     },
         //   }),
         // });
+
+        await fetch("https://direct.i-dgtl.ru/api/v1/message", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.DIRECT_API_KEY}`,
+          },
+          body: JSON.stringify({
+            channelType: "SMS",
+            senderName: "sms_promo",
+            destination: phoneNumber,
+            content: `Ваш код подтверждения: ${code} (${process.env.DIRECT_COMPANY_NAME})`,
+          }),
+        });
       },
       signUpOnVerification: {
         getTempEmail: (phoneNumber) => {
