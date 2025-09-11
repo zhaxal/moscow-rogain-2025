@@ -15,7 +15,6 @@
     "csv-parser": "^3.2.0",
     "formidable": "^3.5.4",
     "kysely": "^0.28.5",
-    "libphonenumber-js": "^1.12.15",
     "mongodb": "^6.19.0",
     "next": "15.5.2",
     "notistack": "^3.0.2",

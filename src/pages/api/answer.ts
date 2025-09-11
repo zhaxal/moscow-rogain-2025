@@ -1,12 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { auth } from "@/lib/auth";
-
-import PocketBase from "pocketbase";
-import { Question } from "@/types/question";
-
-const pb = new PocketBase("https://pb.rogain.moscow");
-const login = process.env.PB_LOGIN;
-const password = process.env.PB_PASSWORD;
+import { db } from "@/database";
 
 interface Answer {
   question_id: string;
@@ -32,35 +26,36 @@ export default async function handler(
             return;
           }
 
-          if (!login || !password) {
-            return res
-              .status(500)
-              .json({ error: "App credentials are not set" });
-          }
-
           const { question_id: id, answer } = body as Answer;
 
-          await pb.collection("_superusers").authWithPassword(login, password);
-          const question = await pb
-            .collection<Question>("questions")
-            .getOne(id);
+          // Get question from database
+          const question = await db
+            .selectFrom("question")
+            .selectAll()
+            .where("id", "=", parseInt(id))
+            .executeTakeFirst();
 
-          const data = {
-            question_id: question.id,
-            answer: answer,
-            is_correct: question.correct_answer === answer,
-            user_id: session.user.id,
-          };
+          if (!question) {
+            return res.status(404).json({ error: "Question not found" });
+          }
 
-          await pb.collection("users_answers").create(data);
-
-          pb.authStore.clear();
+          // Insert user answer
+          await db
+            .insertInto("quiz_attempt")
+            .values({
+              question_id: question.id,
+              answer: answer,
+              is_correct: question.correct_answer === answer,
+              user_id: session.user.id,
+              score: question.correct_answer === answer ? 1 : 0,
+            })
+            .execute();
 
           res.status(200).json({
             message: "Ответ записан",
           });
         } catch (error) {
-          console.error("Error in token handler:", error);
+          console.error("Error in answer handler:", error);
           res.status(500).json({ error: "Internal Server Error" });
           return;
         }

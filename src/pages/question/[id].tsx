@@ -1,7 +1,9 @@
 import { useState } from "react";
 import Head from "next/head";
+import Image from "next/image";
 import { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { auth } from "@/lib/auth";
+import { useRouter } from "next/router";
 
 import { gothampro, mossport } from "@/utils/fonts";
 
@@ -15,6 +17,7 @@ type QuestionPageProps = {
     role: string;
   };
   question: {
+    id: number;
     number: number;
     question: string;
     options: string[];
@@ -33,13 +36,12 @@ export const getServerSideProps = (async (context) => {
     if (!session) {
       return {
         redirect: {
-          destination: "/signin",
+          destination: "/signin?redirect=" + encodeURIComponent(req.url || ""),
           permanent: false,
         },
       };
     }
 
-    // Replace PocketBase with Kysely query
     const record = await db
       .selectFrom("question")
       .selectAll()
@@ -52,6 +54,22 @@ export const getServerSideProps = (async (context) => {
       };
     }
 
+    const attempt = await db
+      .selectFrom("quiz_attempt")
+      .selectAll()
+      .where("question_id", "=", record.id)
+      .where("user_id", "=", session.user.id)
+      .executeTakeFirst();
+
+    if (attempt) {
+      return {
+        redirect: {
+          destination: `/?snackbar=answered`,
+          permanent: false,
+        },
+      };
+    }
+
     return {
       props: {
         user: {
@@ -59,6 +77,7 @@ export const getServerSideProps = (async (context) => {
           role: session.user.role || "user",
         },
         question: {
+          id: record.id,
           number: record.number,
           question: record.question_text,
           options: [
@@ -84,7 +103,44 @@ function QuestionPage({
   question,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [selected, setSelected] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { enqueueSnackbar } = useSnackbar();
+  const router = useRouter();
+
+  const handleSubmit = async () => {
+    if (selected === null || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/answer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question_id: question.id.toString(),
+          answer: question.options[selected],
+        }),
+      });
+
+      if (response.ok) {
+        enqueueSnackbar("Ответ отправлен", { variant: "success" });
+        // Optional: redirect to next question or results page
+        router.push("/");
+      } else {
+        const error = await response.json();
+        enqueueSnackbar(error.error || "Ошибка при отправке ответа", {
+          variant: "error",
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting answer:", error);
+      enqueueSnackbar("Ошибка при отправке ответа", { variant: "error" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <>
@@ -104,6 +160,16 @@ function QuestionPage({
           }}
         >
           <header className="mb-6 sm:mb-8 text-center">
+            <div className="flex justify-center mb-4">
+              <Image
+                src="/logos/rogaine_logo.svg"
+                alt="Rogaine Logo"
+                width={200}
+                height={133}
+                className="h-24 sm:h-32 w-auto"
+                priority
+              />
+            </div>
             <h1
               className={`text-2xl sm:text-4xl font-bold tracking-wide mb-3 sm:mb-4 ${mossport.className}`}
               style={{ color: "#6DAD3A" }}
@@ -127,6 +193,7 @@ function QuestionPage({
             className="space-y-2 sm:space-y-3"
             onSubmit={(e) => {
               e.preventDefault();
+              handleSubmit();
             }}
           >
             {question.options.map((opt, idx) => {
@@ -151,6 +218,7 @@ function QuestionPage({
                     className="mt-1 h-4 w-4 cursor-pointer accent-orange-500 flex-shrink-0"
                     checked={active}
                     onChange={() => setSelected(idx)}
+                    disabled={isSubmitting}
                   />
                   <span
                     className={`text-sm sm:text-base leading-relaxed select-none ${gothampro.className}`}
@@ -179,13 +247,11 @@ function QuestionPage({
                 : `Выбрано: ${String.fromCharCode(65 + selected)}`}
             </div>
             <Button
-              disabled={selected == null}
-              onClick={() => {
-                enqueueSnackbar("Ответ отправлен", { variant: "success" });
-              }}
+              disabled={selected == null || isSubmitting}
+              onClick={handleSubmit}
               className="order-1 sm:order-2 w-full sm:w-auto"
             >
-              ОТВЕТИТЬ
+              {isSubmitting ? "ОТПРАВКА..." : "ОТВЕТИТЬ"}
             </Button>
           </div>
         </div>
