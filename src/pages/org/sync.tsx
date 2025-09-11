@@ -126,7 +126,7 @@ function SyncPage() {
             Синхронизация вопросов игры
           </h1>
 
-          <div className="mb-4 sm:mb-6">
+          {/* <div className="mb-4 sm:mb-6">
             <h2 className="text-base sm:text-lg font-semibold text-gray-700 mb-3">
               Требования к формату CSV
             </h2>
@@ -158,7 +158,7 @@ function SyncPage() {
                 ⚠️ Внимание: Это заменит все существующие вопросы в базе данных.
               </p>
             </div>
-          </div>
+          </div> */}
 
           <form onSubmit={handleUpload} className="space-y-4">
             <div>

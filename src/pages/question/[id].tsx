@@ -3,13 +3,11 @@ import Head from "next/head";
 import { GetServerSideProps, InferGetServerSidePropsType } from "next";
 import { auth } from "@/lib/auth";
 
-import PocketBase from "pocketbase";
-import { Question } from "@/types/question";
-
 import { gothampro, mossport } from "@/utils/fonts";
 
 import Button from "@/components/Button";
 import { useSnackbar } from "notistack";
+import { db } from "@/database";
 
 type QuestionPageProps = {
   user: {
@@ -17,7 +15,7 @@ type QuestionPageProps = {
     role: string;
   };
   question: {
-    number: string;
+    number: number;
     question: string;
     options: string[];
   };
@@ -41,25 +39,18 @@ export const getServerSideProps = (async (context) => {
       };
     }
 
-    const pb = new PocketBase("https://pb.rogain.moscow");
-    const login = process.env.PB_LOGIN;
-    const password = process.env.PB_PASSWORD;
-
-    if (!login || !password) {
-      throw new Error("App credentials are not set");
-    }
-
-    await pb.collection("_superusers").authWithPassword(login, password);
-
-    const record = await pb.collection<Question>("questions").getOne(id);
+    // Replace PocketBase with Kysely query
+    const record = await db
+      .selectFrom("question")
+      .selectAll()
+      .where("org_id", "=", id)
+      .executeTakeFirst();
 
     if (!record) {
       return {
         notFound: true,
       };
     }
-
-    pb.authStore.clear();
 
     return {
       props: {
@@ -69,7 +60,7 @@ export const getServerSideProps = (async (context) => {
         },
         question: {
           number: record.number,
-          question: record.question,
+          question: record.question_text,
           options: [
             record.correct_answer,
             record.incorrect_answer_1,
