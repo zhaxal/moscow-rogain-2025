@@ -107,6 +107,9 @@ export const auth = betterAuth({
         getTempEmail: (phoneNumber) => {
           return `${phoneNumber}@rogain-moskva.ru`;
         },
+        getTempName: () => {
+          return `no_number`;
+        },
       },
     }),
   ],

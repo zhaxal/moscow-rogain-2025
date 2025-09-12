@@ -20,6 +20,15 @@ export const getServerSideProps = (async (context) => {
       headers: req.headers as unknown as Headers,
     });
 
+    if (session?.user.name === "no_number") {
+      return {
+        redirect: {
+          destination: "/register",
+          permanent: false,
+        },
+      };
+    }
+
     if (session) {
       // If user is already authenticated, redirect to the intended page or home
       return {
@@ -72,7 +81,7 @@ function SignInPage({ redirect }: SignInPageProps) {
     if (!phoneValue) return;
     try {
       authClient.phoneNumber.sendOtp(
-        { phoneNumber: phoneValue },
+        { phoneNumber: `+7${phoneValue}` },
         {
           onRequest: () => {
             setIsSendingCode(true);
@@ -98,9 +107,9 @@ function SignInPage({ redirect }: SignInPageProps) {
       return;
     }
     try {
-      authClient.phoneNumber.verify(
+      const response = await authClient.phoneNumber.verify(
         {
-          phoneNumber: data.phone,
+          phoneNumber: `+7${data.phone}`,
           code: data.code,
         },
         {
@@ -109,16 +118,24 @@ function SignInPage({ redirect }: SignInPageProps) {
           },
           onSuccess: () => {
             enqueueSnackbar("Регистрация успешна", { variant: "success" });
-            // Redirect to the intended page or home
-            const destination =
-              redirect && redirect.startsWith("/") ? redirect : "/";
-            router.push(destination);
           },
           onResponse: () => {
             setIsRegistering(false);
           },
         }
       );
+
+      const name = response.data?.user.name;
+
+      if (name === "no_number") {
+        router.push(
+          "/register" +
+            (redirect ? `?redirect=${encodeURIComponent(redirect)}` : "")
+        );
+      }
+
+      const destination = redirect && redirect.startsWith("/") ? redirect : "/";
+      router.push(destination);
     } catch (e) {
       console.error(e);
       enqueueSnackbar("Ошибка регистрации", { variant: "error" });
@@ -189,25 +206,33 @@ function SignInPage({ redirect }: SignInPageProps) {
                 Телефон
               </label>
               <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  {...register("phone", {
-                    required: true,
-                    pattern: /^\+?\d{10,15}$/,
-                  })}
-                  type="tel"
-                  disabled={codeSent}
-                  className={`flex-1 px-3 sm:px-4 py-3 text-sm sm:text-base rounded-lg border-2 transition focus:outline-none ${
-                    gothampro.className
-                  } ${
-                    errors.phone
-                      ? "border-red-500 bg-red-50"
-                      : codeSent
-                      ? "border-green-500 bg-green-50"
-                      : "border-gray-300 focus:border-orange-500 bg-white"
-                  } disabled:opacity-60`}
-                  style={{ color: "#2D2D2D" }}
-                  placeholder="+7XXXXXXXXXX"
-                />
+                <div className="flex-1 relative">
+                  <span
+                    className={`absolute left-3 top-3 text-sm sm:text-base ${gothampro.className}`}
+                    style={{ color: "#2D2D2D" }}
+                  >
+                    +7
+                  </span>
+                  <input
+                    {...register("phone", {
+                      required: true,
+                      pattern: /^\d{10}$/,
+                    })}
+                    type="tel"
+                    disabled={codeSent}
+                    className={`w-full pl-10 pr-3 sm:pr-4 py-3 text-sm sm:text-base rounded-lg border-2 transition focus:outline-none ${
+                      gothampro.className
+                    } ${
+                      errors.phone
+                        ? "border-red-500 bg-red-50"
+                        : codeSent
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-300 focus:border-orange-500 bg-white"
+                    } disabled:opacity-60`}
+                    style={{ color: "#2D2D2D" }}
+                    placeholder="XXXXXXXXXX"
+                  />
+                </div>
                 <Button
                   type="button"
                   onClick={sendCode}
@@ -225,7 +250,7 @@ function SignInPage({ redirect }: SignInPageProps) {
               </div>
               {errors.phone && (
                 <span className="text-red-500 text-xs sm:text-sm font-medium">
-                  Укажите корректный номер (10–15 цифр)
+                  Укажите корректный номер (10 цифр)
                 </span>
               )}
             </div>

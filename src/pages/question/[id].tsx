@@ -10,6 +10,7 @@ import { gothampro, mossport } from "@/utils/fonts";
 import Button from "@/components/Button";
 import { useSnackbar } from "notistack";
 import { db } from "@/database";
+import Footer from "@/components/Footer";
 
 type QuestionPageProps = {
   user: {
@@ -32,6 +33,16 @@ export const getServerSideProps = (async (context) => {
     const session = await auth.api.getSession({
       headers: req.headers as unknown as Headers,
     });
+
+    if (session?.user.name === "no_number") {
+      return {
+        redirect: {
+          destination:
+            "/register?redirect=" + encodeURIComponent(req.url || ""),
+          permanent: false,
+        },
+      };
+    }
 
     if (!session) {
       return {
@@ -149,7 +160,7 @@ function QuestionPage({
         <meta name="viewport" content="width=device-width, initial-scale=1" />
       </Head>
       <main
-        className={`min-h-screen flex items-start justify-center p-3 sm:p-6 ${gothampro.className}`}
+        className={`min-h-screen flex flex-col items-start justify-center p-3 sm:p-6 ${gothampro.className}`}
         style={{ backgroundColor: "#FFFFFF" }}
       >
         <div
@@ -255,6 +266,7 @@ function QuestionPage({
             </Button>
           </div>
         </div>
+        <Footer />
       </main>
     </>
   );

@@ -8,14 +8,28 @@ import Footer from "@/components/Footer";
 import { useEffect } from "react";
 import { useSnackbar } from "notistack";
 import { GetServerSideProps } from "next";
+import { auth } from "@/lib/auth";
 
 interface HomeProps {
   snackbar?: string | null;
 }
 
 export const getServerSideProps = (async (context) => {
-  const { query } = context;
+  const { req, query } = context;
   const snackbar = query.snackbar as string | undefined;
+
+  const session = await auth.api.getSession({
+    headers: req.headers as unknown as Headers,
+  });
+
+  if (session?.user.name === "no_number") {
+    return {
+      redirect: {
+        destination: "/register",
+        permanent: false,
+      },
+    };
+  }
 
   return {
     props: {
