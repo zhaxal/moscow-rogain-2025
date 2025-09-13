@@ -61,6 +61,13 @@ export interface Session {
   userId: string;
 }
 
+export interface Telemetry {
+  created_at: Generated<Timestamp>;
+  id: Generated<number>;
+  points: number;
+  start_number: string;
+}
+
 export interface User {
   banExpires: Timestamp | null;
   banned: boolean | null;
@@ -91,6 +98,7 @@ export interface DB {
   question: Question;
   quiz_attempt: QuizAttempt;
   session: Session;
+  telemetry: Telemetry;
   user: User;
   verification: Verification;
 }

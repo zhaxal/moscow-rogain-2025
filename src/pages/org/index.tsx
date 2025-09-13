@@ -73,6 +73,13 @@ function OrgPage({ user }: AdminPanelProps) {
       href: "/org/users",
       color: "bg-green-50 border-green-200 hover:bg-green-100",
     },
+    {
+      title: "Результаты игры",
+      description: "Просмотреть результаты и статистику игроков",
+      icon: "📊",
+      href: "/org/telemetry",
+      color: "bg-purple-50 border-purple-200 hover:bg-purple-100",
+    },
 
     // {
     //   title: "Экспорт данных",
@@ -128,7 +135,7 @@ function OrgPage({ user }: AdminPanelProps) {
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {stats.map((stat, index) => (
             <div key={index} className="bg-white rounded-lg shadow-md p-6">
               <h3 className="text-sm font-medium text-gray-600 mb-2">
@@ -140,7 +147,7 @@ function OrgPage({ user }: AdminPanelProps) {
               <p className="text-sm text-green-600">{stat.change}</p>
             </div>
           ))}
-        </div>
+        </div> */}
 
         {/* Main Content */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">

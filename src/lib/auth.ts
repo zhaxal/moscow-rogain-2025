@@ -5,7 +5,13 @@ import { openAPI } from "better-auth/plugins";
 
 import { Pool } from "pg";
 
-const adminEmails = ["zhaxa65@gmail.com"];
+const adminEmails = [
+  "zhaxa65@gmail.com",
+  "mikhail.kuchenkov@gmail.com",
+  "Alex@5dva.ru",
+  "prozorov15@mail.ru",
+  "awzudin@gmail.com",
+];
 
 export const auth = betterAuth({
   database: new Pool({
