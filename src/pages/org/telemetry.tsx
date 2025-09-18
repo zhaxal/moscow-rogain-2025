@@ -90,6 +90,63 @@ function TelemetryPage() {
     }
   };
 
+  const exportToCSV = () => {
+    if (results.length === 0) {
+      setError("Нет данных для экспорта");
+      return;
+    }
+
+    // Create CSV header
+    const headers = [
+      "Номер участника",
+      "Телефон", 
+      "Викторина",
+      "Телеметрия",
+      "Общий балл"
+    ];
+
+    // Sort results by total points (descending)
+    const sortedResults = [...results].sort(
+      (a, b) => Number(b.total_points) - Number(a.total_points)
+    );
+
+    // Create CSV rows
+    const csvRows = [
+      headers.join(","),
+      ...sortedResults.map(result => [
+        result.start_number || "N/A",
+        result.phone_number || "N/A",
+        result.quiz_points || 0,
+        result.telemetry_points || 0,
+        result.total_points || 0
+      ].join(","))
+    ];
+
+    // Create CSV content
+    const csvContent = csvRows.join("\n");
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      
+      // Generate filename with current date
+      const now = new Date();
+      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+      link.setAttribute("download", `results_${dateStr}.csv`);
+      
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setMessage("CSV файл успешно экспортирован");
+    }
+  };
+
   useEffect(() => {
     fetchResults();
   }, []);
@@ -239,19 +296,32 @@ function TelemetryPage() {
 
         {/* Results Table */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
             <h2 className="text-xl font-bold text-gray-800">
               Общие результаты
             </h2>
-            <button
-              onClick={fetchResults}
-              disabled={isLoadingResults}
-              className="bg-blue-600 text-white py-2 px-4 rounded-md 
-                hover:bg-blue-700 disabled:bg-gray-400 
-                font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {isLoadingResults ? "Обновление..." : "Обновить"}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <button
+                onClick={exportToCSV}
+                disabled={results.length === 0}
+                className="bg-green-600 text-white py-2 px-4 rounded-md 
+                  hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed
+                  font-medium text-sm focus:outline-none focus:ring-2 focus:ring-green-500
+                  order-2 sm:order-1"
+              >
+                Экспорт CSV
+              </button>
+              <button
+                onClick={fetchResults}
+                disabled={isLoadingResults}
+                className="bg-blue-600 text-white py-2 px-4 rounded-md 
+                  hover:bg-blue-700 disabled:bg-gray-400 
+                  font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
+                  order-1 sm:order-2"
+              >
+                {isLoadingResults ? "Обновление..." : "Обновить"}
+              </button>
+            </div>
           </div>
 
           {isLoadingResults ? (
