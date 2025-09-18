@@ -47,9 +47,9 @@ export default async function handler(
               db.fn
                 .sum(sql`CASE WHEN quiz_attempt.is_correct THEN 1 ELSE 0 END`)
                 .as("quiz_points"),
-              db.fn.sum("telemetry.points").as("telemetry_points"),
+              db.fn.sum(sql`DISTINCT telemetry.points`).as("telemetry_points"),
 
-              sql`COALESCE(SUM(CASE WHEN quiz_attempt.is_correct THEN 1 ELSE 0 END), 0) + COALESCE(SUM(telemetry.points), 0)`.as(
+              sql`COALESCE(SUM(CASE WHEN quiz_attempt.is_correct THEN 1 ELSE 0 END), 0) + COALESCE(SUM(DISTINCT telemetry.points), 0)`.as(
                 "total_points"
               ),
             ])

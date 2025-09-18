@@ -14,6 +14,7 @@ interface Result {
   user_id: string;
   start_number: string;
   phone_number: string;
+  group_name: string; // Добавляем поле группы
   total_questions: number;
   quiz_points: number;
   telemetry_points: number;
@@ -228,13 +229,18 @@ function ResultsPage({
               <div className="min-w-full">
                 {/* Table Header */}
                 <div
-                  className="grid grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-4 rounded-t-lg border-b-2"
+                  className="grid grid-cols-5 gap-2 sm:gap-4 p-3 sm:p-4 rounded-t-lg border-b-2"
                   style={{ backgroundColor: "#6DAD3A", borderColor: "#6DAD3A" }}
                 >
                   <div
                     className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
                   >
                     НОМЕР
+                  </div>
+                  <div
+                    className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
+                  >
+                    ГРУППА
                   </div>
                   <div
                     className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
@@ -258,7 +264,7 @@ function ResultsPage({
                   {filteredResults.map((result, index) => (
                     <div
                       key={result.user_id}
-                      className={`grid grid-cols-4 gap-2 sm:gap-4 p-3 sm:p-4 border-b ${
+                      className={`grid grid-cols-5 gap-2 sm:gap-4 p-3 sm:p-4 border-b ${
                         index === filteredResults.length - 1 ? "border-b-0" : ""
                       }`}
                       style={{
@@ -271,6 +277,12 @@ function ResultsPage({
                         style={{ color: "#6DAD3A" }}
                       >
                         {result.start_number || "—"}
+                      </div>
+                      <div
+                        className={`text-sm sm:text-base ${gothampro.className}`}
+                        style={{ color: "#2D2D2D" }}
+                      >
+                        {result.group_name || "—"}
                       </div>
                       <div
                         className={`text-sm sm:text-base ${gothampro.className}`}
