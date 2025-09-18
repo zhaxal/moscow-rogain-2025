@@ -233,27 +233,27 @@ function ResultsPage({
                   style={{ backgroundColor: "#6DAD3A", borderColor: "#6DAD3A" }}
                 >
                   <div
-                    className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
+                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
                   >
                     НОМЕР
                   </div>
                   <div
-                    className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
+                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
                   >
                     ГРУППА
                   </div>
                   <div
-                    className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
+                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
                   >
                     ВИКТОРИНА
                   </div>
                   <div
-                    className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
+                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
                   >
                     ТЕЛЕМЕТРИЯ
                   </div>
                   <div
-                    className={`text-xs sm:text-sm font-bold text-white ${gothampro.className}`}
+                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
                   >
                     ОБЩИЙ БАЛЛ
                   </div>
