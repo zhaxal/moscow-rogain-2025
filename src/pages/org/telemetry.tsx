@@ -20,6 +20,7 @@ interface Result {
   quiz_points: number;
   telemetry_points: number;
   total_points: number;
+  group_name: string;
 }
 
 interface ResultsResponse {
@@ -99,10 +100,10 @@ function TelemetryPage() {
     // Create CSV header
     const headers = [
       "Номер участника",
-      "Телефон", 
+      "Телефон",
       "Викторина",
       "Телеметрия",
-      "Общий балл"
+      "Общий балл",
     ];
 
     // Sort results by total points (descending)
@@ -113,13 +114,15 @@ function TelemetryPage() {
     // Create CSV rows
     const csvRows = [
       headers.join(","),
-      ...sortedResults.map(result => [
-        result.start_number || "N/A",
-        result.phone_number || "N/A",
-        result.quiz_points || 0,
-        result.telemetry_points || 0,
-        result.total_points || 0
-      ].join(","))
+      ...sortedResults.map((result) =>
+        [
+          result.start_number || "N/A",
+          result.phone_number || "N/A",
+          result.quiz_points || 0,
+          result.telemetry_points || 0,
+          result.total_points || 0,
+        ].join(",")
+      ),
     ];
 
     // Create CSV content
@@ -128,21 +131,21 @@ function TelemetryPage() {
     // Create and download file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
-    
+
     if (link.download !== undefined) {
       const url = URL.createObjectURL(blob);
       link.setAttribute("href", url);
-      
+
       // Generate filename with current date
       const now = new Date();
-      const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD format
       link.setAttribute("download", `results_${dateStr}.csv`);
-      
+
       link.style.visibility = "hidden";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       setMessage("CSV файл успешно экспортирован");
     }
   };
@@ -344,6 +347,9 @@ function TelemetryPage() {
                       Телефон
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Группа
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Викторина
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -369,6 +375,9 @@ function TelemetryPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.phone_number || "N/A"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {result.group_name || "N/A"}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {result.quiz_points || 0}

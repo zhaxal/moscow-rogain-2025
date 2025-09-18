@@ -15,6 +15,7 @@ interface User {
   phone_number: string;
   correct_count: number;
   questions: Question[];
+  user_id: string; // Add user ID for editing
 }
 
 interface Pagination {
@@ -79,6 +80,7 @@ export const getServerSideProps = (async (context) => {
 
 function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
     limit: 50,
@@ -95,6 +97,9 @@ function UsersPage() {
   const [sortBy, setSortBy] = useState("full_name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingNumber, setEditingNumber] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -168,7 +173,7 @@ function UsersPage() {
     // Create CSV headers
     const headers = [
       "№",
-      "ФИО",
+      "Стартовый номер",
       "Телефон",
       "Правильных ответов",
       ...Array.from({ length: 50 }, (_, i) => `Вопрос ${i + 1}`),
@@ -229,6 +234,55 @@ function UsersPage() {
     setSortBy(column);
     setSortOrder(newSortOrder);
     setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const handleEditNumber = (user: User) => {
+    setEditingUserId(user.user_id || "");
+    setEditingNumber(user.full_name);
+  };
+
+  const handleSaveNumber = async (userId: string) => {
+    if (!editingNumber.trim()) {
+      alert("Номер не может быть пустым");
+      return;
+    }
+
+    setIsUpdating(true);
+    try {
+      const response = await fetch(`/api/org/user/${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ new_number: editingNumber.trim() }),
+      });
+
+      if (response.ok) {
+        // Update the user in the local state
+        setUsers(
+          users.map((user) =>
+            user.user_id === userId
+              ? { ...user, full_name: editingNumber.trim() }
+              : user
+          )
+        );
+        setEditingUserId(null);
+        setEditingNumber("");
+      } else {
+        const errorData = await response.json();
+        alert(`Ошибка: ${errorData.error || "Не удалось обновить номер"}`);
+      }
+    } catch (err) {
+      console.error("Error updating user number:", err);
+      alert("Произошла ошибка при обновлении номера");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null);
+    setEditingNumber("");
   };
 
   return (
@@ -356,10 +410,10 @@ function UsersPage() {
                             №
                           </th>
                           <th
-                            className="sticky left-12 z-20 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-300 min-w-[200px] cursor-pointer hover:bg-gray-100"
+                            className="sticky left-12 z-20 bg-gray-50 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-300 min-w-[250px] cursor-pointer hover:bg-gray-100"
                             onClick={() => handleSort("full_name")}
                           >
-                            ФИО{" "}
+                            Стартовый номер{" "}
                             {sortBy === "full_name" &&
                               (sortOrder === "asc" ? "↑" : "↓")}
                           </th>
@@ -394,12 +448,52 @@ function UsersPage() {
                               {user.row_number}
                             </td>
                             <td className="sticky left-12 z-10 bg-white px-6 py-4 text-sm text-gray-900 border-r border-gray-300">
-                              <div
-                                className="truncate max-w-[180px]"
-                                title={user.full_name}
-                              >
-                                {user.full_name}
-                              </div>
+                              {editingUserId === user.user_id ? (
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="text"
+                                    value={editingNumber}
+                                    onChange={(e) =>
+                                      setEditingNumber(e.target.value)
+                                    }
+                                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Введите номер..."
+                                    disabled={isUpdating}
+                                  />
+                                  <button
+                                    onClick={() =>
+                                      handleSaveNumber(user.user_id!)
+                                    }
+                                    disabled={isUpdating}
+                                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    onClick={handleCancelEdit}
+                                    disabled={isUpdating}
+                                    className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 disabled:opacity-50"
+                                  >
+                                    ✗
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between group">
+                                  <div
+                                    className="truncate max-w-[150px]"
+                                    title={user.full_name}
+                                  >
+                                    {user.full_name}
+                                  </div>
+                                  <button
+                                    onClick={() => handleEditNumber(user)}
+                                    className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity px-1 py-1 text-gray-500 hover:text-blue-600 text-xs"
+                                    title="Редактировать номер"
+                                  >
+                                    ✏️
+                                  </button>
+                                </div>
+                              )}
                             </td>
                             <td className="sticky left-64 z-10 bg-white px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-r border-gray-300">
                               {user.phone_number}

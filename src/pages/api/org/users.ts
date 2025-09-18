@@ -79,7 +79,7 @@ export default async function handler(
 
             if (!acc[userId]) {
               acc[userId] = {
-                row_number: 0, // Will be set later
+                user_id: userId,
                 full_name: row.full_name || "Неизвестно",
                 phone_number: row.phone_number || "Не указан",
                 correct_count: 0,

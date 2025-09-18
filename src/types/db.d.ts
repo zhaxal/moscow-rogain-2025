@@ -63,6 +63,7 @@ export interface Session {
 
 export interface Telemetry {
   created_at: Generated<Timestamp>;
+  group: Generated<string>;
   id: Generated<number>;
   points: number;
   start_number: string;

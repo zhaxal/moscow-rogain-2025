@@ -17,6 +17,7 @@ export const config = {
 interface Result {
   start_number: string;
   points: string;
+  group: string;
 
   // Add more fields as needed for checkpoint data
 }
@@ -26,10 +27,11 @@ function parseCSV(filePath: string): Promise<Result[]> {
     const results: Result[] = [];
 
     fs.createReadStream(filePath)
-      .pipe(csv()) // Using comma separator as shown in CSV
+      .pipe(csv({ separator: ";" }))
       .on("data", (row) => {
         // Map the Russian column headers to our interface
         results.push({
+          group: row["Группа"] || "",
           start_number: row["Номер участника"] || "",
           points: row["Баллы"] || "",
         });
@@ -95,7 +97,10 @@ export default async function handler(
         const validResults = results.filter((result) => {
           const startNumber = result.start_number;
           const points = parseInt(result.points, 10);
-          return !isNaN(points) && startNumber.trim() !== "";
+          const group = result.group;
+          return (
+            !isNaN(points) && startNumber.trim() !== "" && group.trim() !== ""
+          );
         });
 
         if (validResults.length > 0) {
@@ -103,6 +108,7 @@ export default async function handler(
             .insertInto("telemetry")
             .values(
               validResults.map((result) => ({
+                group: result.group,
                 start_number: result.start_number,
                 points: parseInt(result.points, 10),
               }))
