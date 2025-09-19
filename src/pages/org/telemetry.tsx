@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/router";
 import { GetServerSideProps } from "next";
 import { auth } from "@/lib/auth";
@@ -71,15 +71,32 @@ function TelemetryPage() {
   const [error, setError] = useState<string>("");
   const [results, setResults] = useState<Result[]>([]);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const [numberFilter, setNumberFilter] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
   const router = useRouter();
 
-  const fetchResults = async () => {
+  const fetchResults = async (startNumber?: string, group?: string) => {
     setIsLoadingResults(true);
     try {
-      const response = await fetch("/api/org/results");
+      const params = new URLSearchParams();
+      if (startNumber?.trim()) {
+        params.append("start_number", startNumber.trim());
+      }
+      if (group?.trim()) {
+        params.append("group", group.trim());
+      }
+
+      const url = `/api/org/results${
+        params.toString() ? "?" + params.toString() : ""
+      }`;
+      const response = await fetch(url);
+
       if (response.ok) {
         const data: ResultsResponse = await response.json();
-        setResults(data.results);
+        const sortedResults = data.results.sort(
+          (a, b) => Number(b.total_points) - Number(a.total_points)
+        );
+        setResults(sortedResults);
       } else {
         setError("Не удалось загрузить результаты");
       }
@@ -89,6 +106,44 @@ function TelemetryPage() {
     } finally {
       setIsLoadingResults(false);
     }
+  };
+
+  // Debounced fetch function
+  const debouncedFetchResults = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (startNumber?: string, group?: string, immediate = false) => {
+        clearTimeout(timeoutId);
+        if (immediate) {
+          fetchResults(startNumber, group);
+        } else {
+          timeoutId = setTimeout(() => {
+            fetchResults(startNumber, group);
+          }, 500); // 500ms delay
+        }
+      };
+    })(),
+    []
+  );
+
+  const handleNumberFilterChange = (value: string) => {
+    setNumberFilter(value);
+    debouncedFetchResults(value, groupFilter);
+  };
+
+  const handleGroupFilterChange = (value: string) => {
+    setGroupFilter(value);
+    debouncedFetchResults(numberFilter, value);
+  };
+
+  const handleRefreshResults = () => {
+    debouncedFetchResults(numberFilter, groupFilter, true);
+  };
+
+  const clearFilters = () => {
+    setNumberFilter("");
+    setGroupFilter("");
+    debouncedFetchResults("", "", true);
   };
 
   const exportToCSV = () => {
@@ -101,6 +156,7 @@ function TelemetryPage() {
     const headers = [
       "Номер участника",
       "Телефон",
+      "Группа",
       "Викторина",
       "Телеметрия",
       "Общий балл",
@@ -118,6 +174,7 @@ function TelemetryPage() {
         [
           result.start_number || "N/A",
           result.phone_number || "N/A",
+          result.group_name || "N/A",
           result.quiz_points || 0,
           result.telemetry_points || 0,
           result.total_points || 0,
@@ -139,7 +196,8 @@ function TelemetryPage() {
       // Generate filename with current date
       const now = new Date();
       const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD format
-      link.setAttribute("download", `results_${dateStr}.csv`);
+      const filterSuffix = numberFilter || groupFilter ? "_filtered" : "";
+      link.setAttribute("download", `results_${dateStr}${filterSuffix}.csv`);
 
       link.style.visibility = "hidden";
       document.body.appendChild(link);
@@ -205,7 +263,7 @@ function TelemetryPage() {
         ) as HTMLInputElement;
         if (fileInput) fileInput.value = "";
         // Refresh results after successful upload
-        fetchResults();
+        debouncedFetchResults(numberFilter, groupFilter, true);
       } else {
         const errorData = data as TelemetryError;
         setError(errorData.error || "Не удалось загрузить результаты");
@@ -303,28 +361,72 @@ function TelemetryPage() {
             <h2 className="text-xl font-bold text-gray-800">
               Общие результаты
             </h2>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          </div>
+
+          {/* Search and Filter Controls */}
+          <div className="mb-6 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Поиск по номеру участника..."
+                  value={numberFilter}
+                  onChange={(e) => handleNumberFilterChange(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 
+                    focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Поиск по группе..."
+                  value={groupFilter}
+                  onChange={(e) => handleGroupFilterChange(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 
+                    focus:border-blue-500 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={exportToCSV}
                 disabled={results.length === 0}
                 className="bg-green-600 text-white py-2 px-4 rounded-md 
                   hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed
-                  font-medium text-sm focus:outline-none focus:ring-2 focus:ring-green-500
-                  order-2 sm:order-1"
+                  font-medium text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               >
                 Экспорт CSV
               </button>
               <button
-                onClick={fetchResults}
+                onClick={handleRefreshResults}
                 disabled={isLoadingResults}
                 className="bg-blue-600 text-white py-2 px-4 rounded-md 
                   hover:bg-blue-700 disabled:bg-gray-400 
-                  font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500
-                  order-1 sm:order-2"
+                  font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {isLoadingResults ? "Обновление..." : "Обновить"}
               </button>
+              {(numberFilter || groupFilter) && (
+                <button
+                  onClick={clearFilters}
+                  disabled={isLoadingResults}
+                  className="bg-gray-200 text-gray-800 py-2 px-4 rounded-md 
+                    hover:bg-gray-300 disabled:bg-gray-100 
+                    font-medium text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Очистить фильтры
+                </button>
+              )}
             </div>
+
+            {(numberFilter || groupFilter) && (
+              <div className="text-sm text-blue-600">
+                Найдено результатов: {results.length}
+                {numberFilter && ` • Номер: "${numberFilter}"`}
+                {groupFilter && ` • Группа: "${groupFilter}"`}
+              </div>
+            )}
           </div>
 
           {isLoadingResults ? (
@@ -333,7 +435,11 @@ function TelemetryPage() {
             </div>
           ) : results.length === 0 ? (
             <div className="text-center py-8">
-              <div className="text-gray-500">Результаты не найдены</div>
+              <div className="text-gray-500">
+                {numberFilter || groupFilter
+                  ? "Результаты не найдены"
+                  : "Результаты не найдены"}
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -361,35 +467,31 @@ function TelemetryPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {results
-                    .sort(
-                      (a, b) => Number(b.total_points) - Number(a.total_points)
-                    )
-                    .map((result, index) => (
-                      <tr
-                        key={result.user_id}
-                        className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                          {result.start_number || "N/A"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {result.phone_number || "N/A"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {result.group_name || "N/A"}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {result.quiz_points || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {result.telemetry_points || 0}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                          {result.total_points || 0}
-                        </td>
-                      </tr>
-                    ))}
+                  {results.map((result, index) => (
+                    <tr
+                      key={result.user_id}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {result.start_number || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {result.phone_number || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {result.group_name || "N/A"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {result.quiz_points || 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {result.telemetry_points || 0}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        {result.total_points || 0}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

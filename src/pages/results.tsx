@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Head from "next/head";
 import Image from "next/image";
 import { GetServerSideProps, InferGetServerSidePropsType } from "next";
@@ -14,7 +14,7 @@ interface Result {
   user_id: string;
   start_number: string;
   phone_number: string;
-  group_name: string; // Добавляем поле группы
+  group_name: string;
   total_questions: number;
   quiz_points: number;
   telemetry_points: number;
@@ -79,26 +79,39 @@ function ResultsPage({
   user,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const [results, setResults] = useState<Result[]>([]);
-  const [filteredResults, setFilteredResults] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [numberFilter, setNumberFilter] = useState("");
+  const [groupFilter, setGroupFilter] = useState("");
   const { enqueueSnackbar } = useSnackbar();
   const router = useRouter();
 
-  const fetchResults = async () => {
+  const fetchResults = async (startNumber?: string, group?: string) => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/org/results");
+      const params = new URLSearchParams();
+      if (startNumber?.trim()) {
+        params.append("start_number", startNumber.trim());
+      }
+      if (group?.trim()) {
+        params.append("group", group.trim());
+      }
+
+      const url = `/api/org/results${
+        params.toString() ? "?" + params.toString() : ""
+      }`;
+      const response = await fetch(url);
+
       if (response.ok) {
         const data: ResultsResponse = await response.json();
         const sortedResults = data.results.sort(
           (a, b) => Number(b.total_points) - Number(a.total_points)
         );
         setResults(sortedResults);
-        setFilteredResults(sortedResults);
         enqueueSnackbar("Результаты обновлены", { variant: "success" });
       } else {
-        enqueueSnackbar("Не удалось загрузить результаты", { variant: "error" });
+        enqueueSnackbar("Не удалось загрузить результаты", {
+          variant: "error",
+        });
       }
     } catch (err) {
       enqueueSnackbar("Ошибка при загрузке результатов", { variant: "error" });
@@ -108,16 +121,42 @@ function ResultsPage({
     }
   };
 
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    if (value.trim() === "") {
-      setFilteredResults(results);
-    } else {
-      const filtered = results.filter((result) =>
-        result.start_number?.toLowerCase().includes(value.toLowerCase())
-      );
-      setFilteredResults(filtered);
-    }
+  // Debounced fetch function
+  const debouncedFetchResults = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (startNumber?: string, group?: string, immediate = false) => {
+        clearTimeout(timeoutId);
+        if (immediate) {
+          fetchResults(startNumber, group);
+        } else {
+          timeoutId = setTimeout(() => {
+            fetchResults(startNumber, group);
+          }, 500); // 500ms delay
+        }
+      };
+    })(),
+    []
+  );
+
+  const handleNumberFilterChange = (value: string) => {
+    setNumberFilter(value);
+    debouncedFetchResults(value, groupFilter);
+  };
+
+  const handleGroupFilterChange = (value: string) => {
+    setGroupFilter(value);
+    debouncedFetchResults(numberFilter, value);
+  };
+
+  const handleRefresh = () => {
+    debouncedFetchResults(numberFilter, groupFilter, true);
+  };
+
+  const clearFilters = () => {
+    setNumberFilter("");
+    setGroupFilter("");
+    debouncedFetchResults("", "", true);
   };
 
   useEffect(() => {
@@ -166,13 +205,13 @@ function ResultsPage({
 
           {/* Search and Refresh Controls */}
           <div className="mb-6 space-y-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
                 <input
                   type="text"
                   placeholder="Поиск по номеру участника..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  value={numberFilter}
+                  onChange={(e) => handleNumberFilterChange(e.target.value)}
                   className={`w-full px-4 py-3 rounded-lg border-2 transition-colors ${gothampro.className}`}
                   style={{
                     borderColor: "#E5E7EB",
@@ -186,21 +225,54 @@ function ResultsPage({
                   }}
                 />
               </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Поиск по группе..."
+                  value={groupFilter}
+                  onChange={(e) => handleGroupFilterChange(e.target.value)}
+                  className={`w-full px-4 py-3 rounded-lg border-2 transition-colors ${gothampro.className}`}
+                  style={{
+                    borderColor: "#E5E7EB",
+                    color: "#2D2D2D",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = "#6DAD3A";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = "#E5E7EB";
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
-                onClick={fetchResults}
+                onClick={handleRefresh}
                 disabled={isLoading}
                 className="w-full sm:w-auto"
               >
                 {isLoading ? "ОБНОВЛЕНИЕ..." : "ОБНОВИТЬ"}
               </Button>
+              {(numberFilter || groupFilter) && (
+                <Button
+                  onClick={clearFilters}
+                  disabled={isLoading}
+                  className="w-full sm:w-auto bg-gray-200 text-gray-800 border-2 border-gray-200"
+                >
+                  ОЧИСТИТЬ ФИЛЬТРЫ
+                </Button>
+              )}
             </div>
 
-            {searchTerm && (
+            {(numberFilter || groupFilter) && (
               <div
                 className={`text-sm ${gothampro.className}`}
                 style={{ color: "#6DAD3A" }}
               >
-                Найдено результатов: {filteredResults.length}
+                Найдено результатов: {results.length}
+                {numberFilter && ` • Номер: "${numberFilter}"`}
+                {groupFilter && ` • Группа: "${groupFilter}"`}
               </div>
             )}
           </div>
@@ -215,13 +287,15 @@ function ResultsPage({
                 Загрузка результатов...
               </div>
             </div>
-          ) : filteredResults.length === 0 ? (
+          ) : results.length === 0 ? (
             <div className="text-center py-8">
               <div
                 className={`text-lg ${gothampro.className}`}
                 style={{ color: "#2D2D2D" }}
               >
-                {searchTerm ? "Результаты не найдены" : "Результаты пока не доступны"}
+                {numberFilter || groupFilter
+                  ? "Результаты не найдены"
+                  : "Результаты пока не доступны"}
               </div>
             </div>
           ) : (
@@ -260,15 +334,19 @@ function ResultsPage({
                 </div>
 
                 {/* Table Body */}
-                <div className="rounded-b-lg border-2 border-t-0" style={{ borderColor: "#6DAD3A" }}>
-                  {filteredResults.map((result, index) => (
+                <div
+                  className="rounded-b-lg border-2 border-t-0"
+                  style={{ borderColor: "#6DAD3A" }}
+                >
+                  {results.map((result, index) => (
                     <div
                       key={result.user_id}
                       className={`grid grid-cols-5 gap-2 sm:gap-4 p-3 sm:p-4 border-b ${
-                        index === filteredResults.length - 1 ? "border-b-0" : ""
+                        index === results.length - 1 ? "border-b-0" : ""
                       }`}
                       style={{
-                        backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F9F9F9",
+                        backgroundColor:
+                          index % 2 === 0 ? "#FFFFFF" : "#F9F9F9",
                         borderColor: "#E5E7EB",
                       }}
                     >

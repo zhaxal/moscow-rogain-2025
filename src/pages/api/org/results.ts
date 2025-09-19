@@ -28,7 +28,10 @@ export default async function handler(
           //   return;
           // }
 
-          const results = await db
+          // Получаем параметры фильтрации
+          const { start_number, group } = req.query;
+
+          let query = db
             .selectFrom("quiz_attempt")
             .leftJoin("user", "user.id", "quiz_attempt.user_id")
             .leftJoin("telemetry", "telemetry.start_number", "user.name")
@@ -52,8 +55,23 @@ export default async function handler(
               sql`COALESCE(SUM(CASE WHEN quiz_attempt.is_correct THEN 1 ELSE 0 END), 0) + COALESCE(SUM(DISTINCT telemetry.points), 0)`.as(
                 "total_points"
               ),
-            ])
-            .execute();
+            ]);
+
+          // Применяем фильтр по стартовому номеру
+          if (
+            start_number &&
+            typeof start_number === "string" &&
+            start_number.trim()
+          ) {
+            query = query.where("user.name", "like", `%${start_number.trim()}%`);
+          }
+
+          // Применяем фильтр по группе
+          if (group && typeof group === "string" && group.trim()) {
+            query = query.where("telemetry.group", "like", `%${group.trim()}%`);
+          }
+
+          const results = await query.execute();
 
           res.status(200).json({
             results,
