@@ -40,30 +40,30 @@ export const getServerSideProps = (async (context) => {
       headers: req.headers as unknown as Headers,
     });
 
-    if (session?.user.name === "no_number") {
-      return {
-        redirect: {
-          destination:
-            "/register?redirect=" + encodeURIComponent(req.url || ""),
-          permanent: false,
-        },
-      };
-    }
+    // if (session?.user.name === "no_number") {
+    //   return {
+    //     redirect: {
+    //       destination:
+    //         "/register?redirect=" + encodeURIComponent(req.url || ""),
+    //       permanent: false,
+    //     },
+    //   };
+    // }
 
-    if (!session) {
-      return {
-        redirect: {
-          destination: "/signin?redirect=" + encodeURIComponent(req.url || ""),
-          permanent: false,
-        },
-      };
-    }
+    // if (!session) {
+    //   return {
+    //     redirect: {
+    //       destination: "/signin?redirect=" + encodeURIComponent(req.url || ""),
+    //       permanent: false,
+    //     },
+    //   };
+    // }
 
     return {
       props: {
         user: {
-          name: session.user.name || "Игрок",
-          role: session.user.role || "user",
+          name: session?.user.name || "Игрок",
+          role: session?.user.role || "user",
         },
       },
     };
