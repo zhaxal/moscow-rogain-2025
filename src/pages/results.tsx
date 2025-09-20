@@ -300,48 +300,50 @@ function ResultsPage({
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <div className="min-w-full">
+              <table className="min-w-full">
                 {/* Table Header */}
-                <div
-                  className="grid grid-cols-5 gap-2 sm:gap-4 p-3 sm:p-4 rounded-t-lg border-b-2"
-                  style={{ backgroundColor: "#6DAD3A", borderColor: "#6DAD3A" }}
-                >
-                  <div
-                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
+                <thead>
+                  <tr
+                    className="border-b-2"
+                    style={{ backgroundColor: "#6DAD3A", borderColor: "#6DAD3A" }}
                   >
-                    НОМЕР
-                  </div>
-                  <div
-                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
-                  >
-                    ГРУППА
-                  </div>
-                  <div
-                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
-                  >
-                    ВИКТОРИНА
-                  </div>
-                  <div
-                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
-                  >
-                    ТЕЛЕМЕТРИЯ
-                  </div>
-                  <div
-                    className={`text-xs sm:text-sm font-bold text-white break-words ${gothampro.className}`}
-                  >
-                    ОБЩИЙ БАЛЛ
-                  </div>
-                </div>
+                    <th
+                      className={`text-xs sm:text-sm font-bold text-white p-3 sm:p-4 text-left min-w-[80px] ${gothampro.className}`}
+                    >
+                      НОМЕР
+                    </th>
+                    <th
+                      className={`text-xs sm:text-sm font-bold text-white p-3 sm:p-4 text-left min-w-[100px] ${gothampro.className}`}
+                    >
+                      ГРУППА
+                    </th>
+                    <th
+                      className={`text-xs sm:text-sm font-bold text-white p-3 sm:p-4 text-center min-w-[90px] ${gothampro.className}`}
+                    >
+                      ВИКТОРИНА
+                    </th>
+                    <th
+                      className={`text-xs sm:text-sm font-bold text-white p-3 sm:p-4 text-center min-w-[100px] ${gothampro.className}`}
+                    >
+                      ТЕЛЕМЕТРИЯ
+                    </th>
+                    <th
+                      className={`text-xs sm:text-sm font-bold text-white p-3 sm:p-4 text-center min-w-[90px] ${gothampro.className}`}
+                    >
+                      ОБЩИЙ БАЛЛ
+                    </th>
+                  </tr>
+                </thead>
 
                 {/* Table Body */}
-                <div
-                  className="rounded-b-lg border-2 border-t-0"
+                <tbody
+                  className="border-2 border-t-0"
                   style={{ borderColor: "#6DAD3A" }}
                 >
                   {results.map((result, index) => (
-                    <div
+                    <tr
                       key={result.user_id}
-                      className={`grid grid-cols-5 gap-2 sm:gap-4 p-3 sm:p-4 border-b ${
+                      className={`border-b ${
                         index === results.length - 1 ? "border-b-0" : ""
                       }`}
                       style={{
@@ -350,40 +352,40 @@ function ResultsPage({
                         borderColor: "#E5E7EB",
                       }}
                     >
-                      <div
-                        className={`text-sm sm:text-base font-semibold ${gothampro.className}`}
+                      <td
+                        className={`text-sm sm:text-base font-semibold p-3 sm:p-4 ${gothampro.className}`}
                         style={{ color: "#6DAD3A" }}
                       >
                         {result.start_number || "—"}
-                      </div>
-                      <div
-                        className={`text-sm sm:text-base ${gothampro.className}`}
+                      </td>
+                      <td
+                        className={`text-sm sm:text-base p-3 sm:p-4 ${gothampro.className}`}
                         style={{ color: "#2D2D2D" }}
                       >
                         {result.group_name || "—"}
-                      </div>
-                      <div
-                        className={`text-sm sm:text-base ${gothampro.className}`}
+                      </td>
+                      <td
+                        className={`text-sm sm:text-base p-3 sm:p-4 text-center ${gothampro.className}`}
                         style={{ color: "#2D2D2D" }}
                       >
                         {result.quiz_points || 0}
-                      </div>
-                      <div
-                        className={`text-sm sm:text-base ${gothampro.className}`}
+                      </td>
+                      <td
+                        className={`text-sm sm:text-base p-3 sm:p-4 text-center ${gothampro.className}`}
                         style={{ color: "#2D2D2D" }}
                       >
                         {result.telemetry_points || 0}
-                      </div>
-                      <div
-                        className={`text-sm sm:text-base font-bold ${gothampro.className}`}
+                      </td>
+                      <td
+                        className={`text-sm sm:text-base font-bold p-3 sm:p-4 text-center ${gothampro.className}`}
                         style={{ color: "#6DAD3A" }}
                       >
                         {result.total_points || 0}
-                      </div>
-                    </div>
+                      </td>
+                    </tr>
                   ))}
-                </div>
-              </div>
+                </tbody>
+              </table>
             </div>
           )}
 
